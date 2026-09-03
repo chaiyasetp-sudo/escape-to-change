@@ -1,0 +1,9 @@
+{
+  "name": "escape-to-change",
+  "version": "1.1.0",
+  "private": true,
+  "description": "ESCAPE TO CHANGE — Leadership & Organizational Change educational escape-room game",
+  "dependencies": {
+    "@netlify/blobs": "11.0.2"
+  }
+}

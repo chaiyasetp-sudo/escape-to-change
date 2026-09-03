@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESCAPE TO CHANGE — Teacher Dashboard</title>
+<style>
+:root{--navy:#082d46;--blue:#159dce;--cyan:#27d4ed;--orange:#ff9c35;--green:#52c994;--red:#e66a61;--text:#18364c;--muted:#667e8e;--line:#d7e5ed}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,"Noto Sans Thai","Segoe UI",sans-serif;color:var(--text);background:linear-gradient(180deg,#eefaff,#fffaf1);min-height:100vh}
+.wrap{max-width:1450px;margin:auto;padding:18px}.head{background:linear-gradient(120deg,#06283f,#0b5575);color:#fff;padding:18px 20px;border-radius:22px;display:flex;justify-content:space-between;gap:15px;align-items:center;box-shadow:0 16px 35px #082d4622}.head h1{margin:0;font-size:28px}.head small{color:#7ceef9}.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 30px #082d4615}.login{max-width:620px;margin:60px auto;padding:25px}.field label{display:block;font-weight:900;font-size:13px;margin-bottom:6px}.field input{width:100%;padding:12px;border:1px solid #cfe0e9;border-radius:12px}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:900;cursor:pointer}.primary{background:linear-gradient(135deg,#118fc6,#23c4e5);color:#fff}.secondary{background:#fff;border:1px solid var(--line);color:var(--text)}.danger{background:#fff0ee;border:1px solid #ffd1cb;color:#9b4038}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0}.toolbar input{min-width:260px;flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:12px}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:15px 0}.metric{padding:16px}.metric span{display:block;color:var(--muted);font-size:12px;font-weight:800}.metric b{display:block;font-size:28px;margin-top:5px;color:#0b5b80}
+.tableCard{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:1150px}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf2f5;text-align:left;font-size:12px;vertical-align:top}.table th{position:sticky;top:0;background:#f4fbff;color:#28546c;z-index:1}.table tr:hover td{background:#fbfeff}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900}.ok{background:#eaf9f1;color:#267458}.research{background:#f1edff;color:#6557ac}.classroom{background:#e9f8ff;color:#176f98}.gainp{color:#27815d;font-weight:900}.gainn{color:#b34d44;font-weight:900}.muted{color:var(--muted)}.notice{padding:12px 14px;border-radius:13px;background:#fff8e8;border:1px solid #ffe0a4;color:#74531c;line-height:1.5;margin-top:12px}.hidden{display:none!important}
+.modalBg{display:none;position:fixed;inset:0;background:#001b2db5;align-items:center;justify-content:center;padding:20px;z-index:100}.modalBg.open{display:flex}.modal{width:min(1050px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;padding:20px}.kv{display:grid;grid-template-columns:190px 1fr;gap:5px 12px}.kv div{padding:7px 0;border-bottom:1px solid #eef2f5;font-size:13px}.json{white-space:pre-wrap;background:#071f31;color:#dff8ff;padding:14px;border-radius:14px;font-size:11px;overflow:auto;max-height:350px}
+.footer{text-align:center;color:#6b8190;font-size:12px;margin-top:16px;line-height:1.5}
+@media(max-width:900px){.metrics{grid-template-columns:1fr 1fr}.head{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div><h1>ESCAPE TO CHANGE — Teacher Dashboard</h1><small>Leadership & Organizational Change</small></div>
+    <div><b>Developed by Chaiyaset Promsri</b><br><small>© 2026 Chaiyaset Promsri. All rights reserved.</small></div>
+  </div>
+
+  <section id="loginCard" class="card login">
+    <h2 style="margin-top:0">เข้าสู่ระบบอาจารย์</h2>
+    <p class="muted">ใส่ Admin Token ที่ตั้งไว้ใน Netlify Environment Variables ระบบจะเก็บ Token ไว้เฉพาะใน sessionStorage ของเบราว์เซอร์นี้</p>
+    <div class="field"><label>ETC_ADMIN_TOKEN</label><input id="tokenInput" type="password" autocomplete="current-password"></div>
+    <div class="toolbar"><button class="btn primary" id="loginBtn">เปิด Dashboard</button></div>
+    <div id="loginMsg" class="notice hidden"></div>
+  </section>
+
+  <section id="dash" class="hidden">
+    <div class="toolbar">
+      <input id="search" placeholder="ค้นหา Student ID, ชื่อ, Result ID, Outcome">
+      <button class="btn primary" id="refreshBtn">รีเฟรชข้อมูล</button>
+      <button class="btn secondary" id="csvBtn">ดาวน์โหลด CSV</button>
+      <button class="btn secondary" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+
+    <div class="metrics">
+      <div class="card metric"><span>SUBMISSIONS</span><b id="mCount">0</b></div>
+      <div class="card metric"><span>MEAN PRETEST</span><b id="mPre">—</b></div>
+      <div class="card metric"><span>MEAN POSTTEST</span><b id="mPost">—</b></div>
+      <div class="card metric"><span>MEAN LEARNING GAIN</span><b id="mGain">—</b></div>
+      <div class="card metric"><span>MEAN SATISFACTION</span><b id="mSat">—</b></div>
+    </div>
+
+    <div id="status" class="notice">ยังไม่ได้โหลดข้อมูล</div>
+    <div class="card tableCard" style="margin-top:12px">
+      <table class="table">
+        <thead><tr>
+          <th>Student / Participant</th><th>ID</th><th>Mode</th><th>Pre</th><th>Post</th><th>Gain</th>
+          <th>Video 1</th><th>Video 2</th><th>Rooms</th><th>Outcome</th><th>Satisfaction</th><th>Submitted</th><th>Result ID</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="footer">Teacher/Research Dashboard • ESCAPE TO CHANGE • Developed by Chaiyaset Promsri • © 2026 Chaiyaset Promsri</div>
+</div>
+
+<div class="modalBg" id="detailModal"><div class="modal">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Submission Detail</h2><button class="btn secondary" id="closeDetail">ปิด</button></div>
+  <div id="detailBody" style="margin-top:14px"></div>
+</div></div>
+
+<script>
+"use strict";
+const API="/api/results";
+let TOKEN=sessionStorage.getItem("ETC_ADMIN_TOKEN")||"";
+let DATA=[],FILTERED=[];
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const fmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(2):"—";
+
+async function api(url){
+  const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`},cache:"no-store"});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
+}
+function authUI(ok){
+  $("loginCard").classList.toggle("hidden",ok);
+  $("dash").classList.toggle("hidden",!ok);
+}
+async function login(){
+  TOKEN=$("tokenInput").value.trim();
+  if(!TOKEN)return;
+  $("loginMsg").classList.add("hidden");
+  try{
+    await load();
+    sessionStorage.setItem("ETC_ADMIN_TOKEN",TOKEN);
+    authUI(true);
+  }catch(e){
+    $("loginMsg").textContent="เข้าสู่ระบบไม่สำเร็จ: "+e.message;
+    $("loginMsg").classList.remove("hidden");
+    authUI(false);
+  }
+}
+async function load(){
+  $("status").textContent="กำลังโหลดข้อมูล…";
+  const d=await api(API);
+  DATA=d.results||[];
+  applyFilter();
+  $("status").textContent=`โหลดแล้ว ${DATA.length} รายการ • ${new Date().toLocaleString("th-TH")}`;
+}
+function applyFilter(){
+  const q=$("search").value.trim().toLowerCase();
+  FILTERED=DATA.filter(x=>!q||[
+    x.studentName,x.studentId,x.participantId,x.resultId,x.outcome,x.mode
+  ].some(v=>String(v||"").toLowerCase().includes(q)));
+  render();
+}
+function render(){
+  $("mCount").textContent=FILTERED.length;
+  const pres=FILTERED.map(x=>Number(x.pre)).filter(Number.isFinite);
+  const posts=FILTERED.map(x=>Number(x.post)).filter(Number.isFinite);
+  const gains=FILTERED.map(x=>Number(x.gain)).filter(Number.isFinite);
+  const sats=FILTERED.map(x=>Number(x.satisfactionMean)).filter(Number.isFinite);
+  $("mPre").textContent=mean(pres)===null?"—":fmt(mean(pres));
+  $("mPost").textContent=mean(posts)===null?"—":fmt(mean(posts));
+  $("mGain").textContent=mean(gains)===null?"—":fmt(mean(gains));
+  $("mSat").textContent=mean(sats)===null?"—":fmt(mean(sats))+"/5";
+  $("tbody").innerHTML=FILTERED.map((x,i)=>`<tr data-id="${esc(x.resultId)}" style="cursor:pointer">
+    <td><b>${esc(x.studentName||x.participantId||"Research participant")}</b></td>
+    <td>${esc(x.studentId||x.participantId||"—")}</td>
+    <td><span class="tag ${x.mode==="research"?"research":"classroom"}">${esc(x.mode||"—")}</span></td>
+    <td>${esc(x.pre)}</td><td>${esc(x.post)}</td>
+    <td class="${Number(x.gain)>=0?"gainp":"gainn"}">${Number(x.gain)>=0?"+":""}${esc(x.gain)}</td>
+    <td>${esc(x.video1Coverage)}%</td><td>${esc(x.video2Coverage)}%</td><td>${esc(x.roomsComplete)}/10</td>
+    <td>${esc(x.outcome||"—")}</td><td>${x.satisfactionMean!=null?esc(Number(x.satisfactionMean).toFixed(2))+"/5":"—"}</td>
+    <td>${x.submittedAt?esc(new Date(x.submittedAt).toLocaleString("th-TH")):"—"}</td><td>${esc(x.resultId)}</td>
+  </tr>`).join("");
+  document.querySelectorAll("#tbody tr").forEach(tr=>tr.onclick=()=>detail(tr.dataset.id));
+}
+async function detail(id){
+  $("detailBody").innerHTML="กำลังโหลด…";
+  $("detailModal").classList.add("open");
+  try{
+    const d=await api(API+"?id="+encodeURIComponent(id));
+    const x=d.record||{};
+    const s=x.summary||{};
+    $("detailBody").innerHTML=`<div class="kv">
+      <div><b>Result ID</b></div><div>${esc(s.resultId||id)}</div>
+      <div><b>Student / Participant</b></div><div>${esc(s.studentName||s.participantId||"—")}</div>
+      <div><b>ID</b></div><div>${esc(s.studentId||s.participantId||"—")}</div>
+      <div><b>Mode</b></div><div>${esc(s.mode||"—")}</div>
+      <div><b>Pre → Post</b></div><div>${esc(s.pre)} → ${esc(s.post)} (Gain ${Number(s.gain)>=0?"+":""}${esc(s.gain)})</div>
+      <div><b>Video coverage</b></div><div>${esc(s.video1Coverage)}% / ${esc(s.video2Coverage)}%</div>
+      <div><b>Rooms</b></div><div>${esc(s.roomsComplete)}/10</div>
+      <div><b>Outcome</b></div><div>${esc(s.outcome||"—")}</div>
+      <div><b>Satisfaction</b></div><div>${s.satisfactionMean!=null?esc(Number(s.satisfactionMean).toFixed(2))+"/5":"—"}</div>
+      <div><b>Submitted</b></div><div>${esc(x.submittedAt||"—")}</div>
+    </div><h3>Raw record</h3><div class="json">${esc(JSON.stringify(x,null,2))}</div>`;
+  }catch(e){$("detailBody").innerHTML=`<div class="notice">โหลดรายละเอียดไม่สำเร็จ: ${esc(e.message)}</div>`}
+}
+function csv(){
+  const cols=["resultId","studentName","studentId","participantId","mode","pre","post","gain","video1Coverage","video2Coverage","roomsComplete","outcome","satisfactionMean","submittedAt"];
+  const rows=[cols,...FILTERED.map(x=>cols.map(c=>x[c]??""))];
+  const content="\ufeff"+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([content],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=`escape_to_change_class_results_${new Date().toISOString().slice(0,10)}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+$("loginBtn").onclick=login;
+$("tokenInput").onkeydown=e=>{if(e.key==="Enter")login()};
+$("refreshBtn").onclick=()=>load().catch(e=>$("status").textContent="โหลดไม่สำเร็จ: "+e.message);
+$("csvBtn").onclick=csv;
+$("logoutBtn").onclick=()=>{TOKEN="";sessionStorage.removeItem("ETC_ADMIN_TOKEN");authUI(false)};
+$("search").oninput=applyFilter;
+$("closeDetail").onclick=()=>$("detailModal").classList.remove("open");
+$("detailModal").onclick=e=>{if(e.target===$("detailModal"))$("detailModal").classList.remove("open")};
+
+if(TOKEN){$("tokenInput").value=TOKEN;login()}else authUI(false);
+</script>
+</body></html>

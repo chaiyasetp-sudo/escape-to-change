@@ -1,0 +1,22 @@
+{
+  "syntax": {
+    "submit-result.mjs": true,
+    "results.mjs": true,
+    "health.mjs": true,
+    "index_inline_scripts": true,
+    "teacher_inline_scripts": true
+  },
+  "syntax_errors": {},
+  "requirements": {
+    "developer_first_page": true,
+    "copyright_first_page": true,
+    "cloud_submit_endpoint": true,
+    "teacher_dashboard": true,
+    "satisfaction_preserved": true,
+    "character_lock_preserved": true,
+    "youtube_preserved": true,
+    "netlify_config": true,
+    "submit_function": true,
+    "results_function": true
+  }
+}

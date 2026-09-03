@@ -1,0 +1,16 @@
+ESCAPE TO CHANGE — DEPLOY CHECKLIST
+
+[ ] 1. อัปโหลด project ทั้งโฟลเดอร์เข้า GitHub repository
+[ ] 2. Import repository เข้า Netlify
+[ ] 3. ตั้ง ETC_ADMIN_TOKEN ใน Netlify Environment Variables
+[ ] 4. ตั้ง ETC_RESEARCH_SALT ใน Netlify Environment Variables
+[ ] 5. Trigger deploy ใหม่หลังตั้ง Environment Variables
+[ ] 6. เปิด /api/health ต้องได้ ok:true
+[ ] 7. เปิดหน้าเกม / และตรวจชื่อผู้พัฒนา + © 2026
+[ ] 8. ทดลอง Student flow จน Final Dashboard 1 ครั้ง
+[ ] 9. Final Dashboard ต้องขึ้น “ส่งผลเข้าสู่ระบบรายวิชาแล้ว”
+[ ] 10. เปิด /teacher.html ใส่ Admin Token
+[ ] 11. ต้องเห็นผลทดสอบในตาราง
+[ ] 12. ทดลอง Download CSV
+[ ] 13. ทดลองบน Chrome + Safari/iPad
+[ ] 14. ก่อนแจกนักศึกษา ให้ลบ/แยกข้อมูล Session ทดสอบตามนโยบายของรายวิชา
