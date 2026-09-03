@@ -83,3 +83,4 @@ Teacher
 - localStorage ยังใช้สำหรับ Resume เมื่อ refresh
 - Cloud submission เป็นชั้นเพิ่มเติม ไม่ได้แทน local resume
 - หาก server ชั่วคราวล่ม นักศึกษายัง Export JSON เป็น fallback ได้
+Redeploy after environment variable update
