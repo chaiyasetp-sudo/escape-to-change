@@ -34,7 +34,8 @@
     <div class="toolbar">
       <input id="search" placeholder="ค้นหา Student ID, ชื่อ, Result ID, Outcome">
       <button class="btn primary" id="refreshBtn">รีเฟรชข้อมูล</button>
-      <button class="btn secondary" id="csvBtn">ดาวน์โหลด CSV</button>
+      <button class="btn secondary" id="csvBtn">ดาวน์โหลด CSV สรุป</button>
+      <button class="btn secondary" id="itemCsvBtn">ดาวน์โหลด Item Data (Pre/Post 40 ข้อ)</button>
       <button class="btn secondary" id="logoutBtn">ออกจากระบบ</button>
     </div>
 
@@ -47,6 +48,9 @@
     </div>
 
     <div id="status" class="notice">ยังไม่ได้โหลดข้อมูล</div>
+    <div class="notice" style="background:#eefaff;border-color:#c9eaf7;color:#28546c">
+      <b>Item Data Export:</b> ปุ่ม Item Data จะดึง Raw record ของรายการที่แสดงอยู่ในตารางทีละรายการจากระบบเดิม โดยไม่แก้ไขหรือลบข้อมูลบนเซิร์ฟเวอร์ แล้วส่งออกทั้งคำตอบที่เลือกและคะแนนถูก/ผิดรายข้อสำหรับ Pretest 20 ข้อและ Posttest 20 ข้อ
+    </div>
     <div class="card tableCard" style="margin-top:12px">
       <table class="table">
         <thead><tr>
@@ -71,6 +75,11 @@
 const API="/api/results";
 let TOKEN=sessionStorage.getItem("ETC_ADMIN_TOKEN")||"";
 let DATA=[],FILTERED=[];
+
+// Exact answer keys from the deployed ESCAPE TO CHANGE v1.1 student build.
+// Response values in state.pre.r / state.post.r are zero-based option indexes.
+const PRE_KEY=[1,1,2,0,1,2,0,0,1,1,1,0,1,0,1,2,0,0,1,1];
+const POST_KEY=[1,1,0,0,1,2,0,0,0,1,0,1,0,0,0,0,0,0,1,0];
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
@@ -158,6 +167,85 @@ async function detail(id){
     </div><h3>Raw record</h3><div class="json">${esc(JSON.stringify(x,null,2))}</div>`;
   }catch(e){$("detailBody").innerHTML=`<div class="notice">โหลดรายละเอียดไม่สำเร็จ: ${esc(e.message)}</div>`}
 }
+function csvCell(v){
+  if(v===null||v===undefined)return '""';
+  return `"${String(v).replace(/"/g,'""')}"`;
+}
+function downloadCsv(rows,filename){
+  const content="\ufeff"+rows.map(r=>r.map(csvCell).join(",")).join("\n");
+  const blob=new Blob([content],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function responseAt(r,i){
+  if(!r||typeof r!=="object")return "";
+  const v=r[i]!==undefined?r[i]:r[String(i)];
+  if(v===undefined||v===null||v==="")return "";
+  const n=Number(v);
+  return Number.isFinite(n)?n:v;
+}
+function correctness(resp,key){
+  if(resp===""||resp===null||resp===undefined)return "";
+  return Number(resp)===Number(key)?1:0;
+}
+async function itemCsv(){
+  const btn=$("itemCsvBtn");
+  if(!FILTERED.length){
+    $("status").textContent="ไม่มีรายการในตารางสำหรับส่งออก Item Data";
+    return;
+  }
+  const original=btn.textContent;
+  btn.disabled=true;
+  try{
+    const heads=[
+      "resultId","studentName","studentId","participantId","mode","submittedAt",
+      "pre_total_server","post_total_server","gain_server",
+      ...Array.from({length:20},(_,i)=>`pre_resp_q${String(i+1).padStart(2,"0")}`),
+      ...Array.from({length:20},(_,i)=>`pre_correct_q${String(i+1).padStart(2,"0")}`),
+      ...Array.from({length:20},(_,i)=>`post_resp_q${String(i+1).padStart(2,"0")}`),
+      ...Array.from({length:20},(_,i)=>`post_correct_q${String(i+1).padStart(2,"0")}`),
+      "pre_total_recalc","post_total_recalc","score_check"
+    ];
+    const rows=[heads];
+    let failures=0;
+    for(let j=0;j<FILTERED.length;j++){
+      const summaryRow=FILTERED[j];
+      btn.textContent=`กำลังดึง Item Data ${j+1}/${FILTERED.length}`;
+      $("status").textContent=`กำลังดึง Raw record ${j+1}/${FILTERED.length} • ${summaryRow.resultId||""}`;
+      try{
+        const d=await api(API+"?id="+encodeURIComponent(summaryRow.resultId));
+        const rec=d.record||{};
+        const sm=rec.summary||summaryRow||{};
+        const st=rec.state||{};
+        const preR=st.pre&&st.pre.r?st.pre.r:{};
+        const postR=st.post&&st.post.r?st.post.r:{};
+        const preResp=PRE_KEY.map((_,i)=>responseAt(preR,i));
+        const postResp=POST_KEY.map((_,i)=>responseAt(postR,i));
+        const preCorrect=preResp.map((v,i)=>correctness(v,PRE_KEY[i]));
+        const postCorrect=postResp.map((v,i)=>correctness(v,POST_KEY[i]));
+        const preRecalc=preCorrect.every(v=>v!=="")?preCorrect.reduce((a,b)=>a+b,0):"";
+        const postRecalc=postCorrect.every(v=>v!=="")?postCorrect.reduce((a,b)=>a+b,0):"";
+        const serverPre=sm.pre??summaryRow.pre??"";
+        const serverPost=sm.post??summaryRow.post??"";
+        const scoreCheck=(preRecalc!==""&&postRecalc!=="")?(Number(serverPre)===preRecalc&&Number(serverPost)===postRecalc?"OK":"MISMATCH"):"INCOMPLETE";
+        rows.push([
+          sm.resultId||summaryRow.resultId||"",sm.studentName||summaryRow.studentName||"",sm.studentId||summaryRow.studentId||"",
+          sm.participantId||summaryRow.participantId||"",sm.mode||summaryRow.mode||"",rec.submittedAt||summaryRow.submittedAt||"",
+          serverPre,serverPost,sm.gain??summaryRow.gain??"",
+          ...preResp,...preCorrect,...postResp,...postCorrect,preRecalc,postRecalc,scoreCheck
+        ]);
+      }catch(e){
+        failures++;
+        rows.push([summaryRow.resultId||"",summaryRow.studentName||"",summaryRow.studentId||"",summaryRow.participantId||"",summaryRow.mode||"",summaryRow.submittedAt||"",summaryRow.pre??"",summaryRow.post??"",summaryRow.gain??"",...Array(80).fill(""),"","","FETCH_ERROR: "+e.message]);
+      }
+    }
+    const stamp=new Date().toISOString().slice(0,10);
+    downloadCsv(rows,`escape_to_change_item_data_${stamp}.csv`);
+    $("status").textContent=`ส่งออก Item Data แล้ว ${FILTERED.length} รายการ${failures?` • ดึงรายละเอียดไม่สำเร็จ ${failures} รายการ`:" • ตรวจ Raw record ครบทุกแถว"}`;
+  }finally{
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+}
 function csv(){
   const cols=["resultId","studentName","studentId","participantId","mode","pre","post","gain","video1Coverage","video2Coverage","roomsComplete","outcome","satisfactionMean","submittedAt"];
   const rows=[cols,...FILTERED.map(x=>cols.map(c=>x[c]??""))];
@@ -169,6 +257,7 @@ $("loginBtn").onclick=login;
 $("tokenInput").onkeydown=e=>{if(e.key==="Enter")login()};
 $("refreshBtn").onclick=()=>load().catch(e=>$("status").textContent="โหลดไม่สำเร็จ: "+e.message);
 $("csvBtn").onclick=csv;
+$("itemCsvBtn").onclick=()=>itemCsv().catch(e=>{$("status").textContent="ส่งออก Item Data ไม่สำเร็จ: "+e.message});
 $("logoutBtn").onclick=()=>{TOKEN="";sessionStorage.removeItem("ETC_ADMIN_TOKEN");authUI(false)};
 $("search").oninput=applyFilter;
 $("closeDetail").onclick=()=>$("detailModal").classList.remove("open");
